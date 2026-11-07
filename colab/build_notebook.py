@@ -45,6 +45,7 @@ Option A (default): unzip the package uploaded to Drive.
 Option B: if the project is on GitHub, comment A and use `git clone`.
 """),
     code("""
+%cd /content
 !rm -rf /content/code && mkdir -p /content/code
 !unzip -oq "$PROJECT/carnatic_mir_code.zip" -d /content/code
 # !git clone https://github.com/<you>/<repo>.git /content/code
