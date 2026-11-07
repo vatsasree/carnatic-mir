@@ -17,7 +17,11 @@ fi
 ffmpeg -version | head -1
 
 echo "== 2/4 python packages (torch from the container is kept)"
-python3 -m pip install -q --root-user-action=ignore -r requirements-colab.txt
+if python3 -m pip --version >/dev/null 2>&1; then
+    python3 -m pip install -q --root-user-action=ignore -r requirements-colab.txt
+else                                   # some vLLM images ship uv instead of pip
+    uv pip install --system -q -r requirements-colab.txt
+fi
 python3 scripts/shard.py join          # rebuild any sharded files (e.g. model weights) pushed via git
 python3 - <<'PY'
 import torch

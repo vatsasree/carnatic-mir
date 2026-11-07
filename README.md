@@ -41,6 +41,9 @@ python scripts/make_test_audio.py && python scripts/eval_synthetic.py   # ground
 
 Paths can be redirected anywhere with `CARNATIC_MIR_OUTPUTS`, `CARNATIC_MIR_MODELS`, `CARNATIC_MIR_UPLOADS`.
 
+## Big GPU server via GitHub
+See [docs/H100_RUN.md](docs/H100_RUN.md): push, run `scripts/server_run.sh` in the container, pull `results/h100/`.
+
 ## Speed on Apple Silicon
 With `mlx` installed, BS-RoFormer's transformer layers and CREPE run in MLX instead of PyTorch MPS; the outputs match.
 Vocal-stem frames below -50 dB skip CREPE. `CARNATIC_MIR_MLX=0` turns this off.
