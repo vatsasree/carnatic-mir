@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compare Tracks</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+  :root { --bg: #11141a; --panel: #181c24; --panel2: #1f2430; --line: #2b3140; --text: #e6e8ee; --muted: #8b93a7; --accent: #f2a541; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  header { display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  select, button { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font: inherit; }
+  main { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 12px; padding: 12px 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+  .card h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+  label { display: flex; gap: 6px; align-items: center; padding: 2px 0; cursor: pointer; word-break: break-all; }
+  .muted { color: var(--muted); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Compare tracks</h1>
+  <label class="muted" style="display:inline-flex">Feature group
+    <select id="group"><option value="">all</option></select></label>
+  <span class="muted">Cells are z-scores across the selected tracks (raw value on hover). Click a row for a bar chart.</span>
+  <a href="/" style="margin-left:auto">← viewer</a>
+</header>
+<main>
+  <aside class="card"><h3>Tracks</h3><div id="tracks"></div></aside>
+  <section>
+    <div class="card"><div id="heat"></div></div>
+    <div class="card"><h3 id="barTitle">Feature</h3><div id="bar"></div></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let rows = [], feats = [];
+const L0 = () => ({ paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: '#e6e8ee', size: 11 } });
+
+async function init() {
+  rows = await (await fetch('/api/summary')).json();
+  const keys = new Set();
+  rows.forEach(r => Object.entries(r).forEach(([k, v]) => { if (typeof v === 'number' && !k.startsWith('general.duration')) keys.add(k); }));
+  feats = [...keys].sort();
+  const groups = [...new Set(feats.map(k => k.split('.')[0]))];
+  $('group').innerHTML += groups.map(g => `<option>${g}</option>`).join('');
+  $('tracks').innerHTML = rows.map((r, i) => `<label><input type="checkbox" data-i="${i}" checked> ${r.track_id}</label>`).join('') || '<span class="muted">no processed tracks</span>';
+  $('tracks').querySelectorAll('input').forEach(c => c.onchange = draw);
+  $('group').onchange = draw;
+  draw();
+}
+
+function draw() {
+  const sel = [...$('tracks').querySelectorAll('input:checked')].map(c => rows[+c.dataset.i]);
+  const g = $('group').value;
+  const fs = feats.filter(k => !g || k.startsWith(g + '.')).filter(k => sel.some(r => r[k] != null));
+  const z = [], raw = [];
+  fs.forEach(k => {
+    const v = sel.map(r => r[k]), vv = v.filter(x => x != null);
+    const m = vv.reduce((a, b) => a + b, 0) / vv.length, sd = Math.sqrt(vv.reduce((a, b) => a + (b - m) ** 2, 0) / vv.length) || 1;
+    z.push(v.map(x => x == null ? null : (x - m) / sd)); raw.push(v);
+  });
+  const L = L0();
+  L.height = Math.max(300, 18 * fs.length + 120);
+  L.margin = { l: 330, r: 20, t: 10, b: 110 };
+  L.xaxis = { tickangle: -30 }; L.yaxis = { autorange: 'reversed', tickfont: { size: 10 } };
+  Plotly.react($('heat'), [{ type: 'heatmap', x: sel.map(r => r.track_id), y: fs, z, customdata: raw,
+    colorscale: 'RdBu', reversescale: true, zmid: 0, zmin: -2, zmax: 2, xgap: 2, ygap: 1,
+    hovertemplate: '%{y}<br>%{x}: %{customdata}<br>z = %{z:.2f}<extra></extra>', colorbar: { title: 'z' } }], L, { displaylogo: false, responsive: true });
+  $('heat').removeAllListeners?.('plotly_click');
+  $('heat').on('plotly_click', e => bar(e.points[0].y, sel));
+  if (fs.length) bar(fs[0], sel);
+}
+
+function bar(k, sel) {
+  $('barTitle').textContent = k;
+  const L = L0(); L.height = 260; L.margin = { l: 50, r: 20, t: 10, b: 100 }; L.xaxis = { tickangle: -30 };
+  L.yaxis = { gridcolor: '#2b3140' };
+  Plotly.react($('bar'), [{ type: 'bar', x: sel.map(r => r.track_id), y: sel.map(r => r[k]), marker: { color: '#f2a541' } }], L, { displaylogo: false, responsive: true });
+}
+init();
+</script>
+</body>
+</html>

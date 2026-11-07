@@ -1,0 +1,12 @@
+# Google Colab: torch/torchaudio (CUDA), numpy, scipy, pandas and ffmpeg are preinstalled — do NOT reinstall torch.
+audio-separator
+onnxruntime
+librosa
+torchcrepe
+essentia
+soundfile
+praat-parselmouth
+fastapi
+uvicorn
+python-multipart
+yt-dlp

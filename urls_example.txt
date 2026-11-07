@@ -1,0 +1,8 @@
+# One recording per line:  URL  [start  [end]]   (times in seconds or mm:ss; omit for the whole video)
+# Lines starting with # are ignored.
+#   python -m carnatic_mir.youtube --file urls_example.txt    -> download only (into data/raw/)
+#   python -m carnatic_mir.cli --urls urls_example.txt        -> download + analyse
+#
+# https://www.youtube.com/watch?v=XXXXXXXXXXX   10:00  15:00
+# https://youtu.be/YYYYYYYYYYY
+

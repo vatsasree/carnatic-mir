@@ -1,0 +1,16 @@
+# Code, data/raw audio and results/<run>/ features go to git. Everything heavy or regenerable stays out.
+__pycache__/
+*.pyc
+.DS_Store
+dist/
+uploads/
+outputs/
+models/**
+!models/**/
+!models/**/*.shard[0-9][0-9][0-9]
+!models/**/*.sha256
+results/**/*.wav
+results/**/_sep_tmp/
+results/**/*.log.tmp
+.claude/
+logs/

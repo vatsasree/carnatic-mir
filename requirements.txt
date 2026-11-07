@@ -1,0 +1,20 @@
+# conda create -n carnatic-mir -c conda-forge python=3.11 ffmpeg && conda activate carnatic-mir
+# pip install -r requirements.txt
+torch
+torchaudio
+audio-separator
+onnxruntime
+demucs
+librosa
+torchcrepe
+essentia
+soundfile
+numpy
+scipy
+pandas
+fastapi
+uvicorn[standard]
+python-multipart
+praat-parselmouth
+yt-dlp
+mlx; sys_platform == "darwin"   # Apple-GPU fast path for BS-RoFormer and CREPE
