@@ -18,3 +18,4 @@ python-multipart
 praat-parselmouth
 yt-dlp
 mlx; sys_platform == "darwin"   # Apple-GPU fast path for BS-RoFormer and CREPE
+bottleneck

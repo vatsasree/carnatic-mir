@@ -28,7 +28,7 @@ python -m carnatic_mir.cli outputs/<track> --tonic 146.8   # fix tonic; recomput
 python -m carnatic_mir.youtube "<url>" ["<url>" ...]   # YouTube audio -> data/raw/ (original stream, no re-encode)
 python -m carnatic_mir.cli "<url>" --start 10:00 --end 15:00   # download + analyse in one go (--playlist for playlists)
 python -m carnatic_mir.youtube --file urls.txt          # batch download; format in urls_example.txt
-python -m carnatic_mir.cli --urls urls.txt              # batch download + analyse, per-line 'URL [start end]'
+python -m carnatic_mir.cli --list jobs.txt --workers 2   # batch: per line 'URL-or-audio-file [start end]'; N tracks at once
 python scripts/make_test_audio.py && python scripts/eval_synthetic.py   # ground-truth sanity check
 ```
 

@@ -21,10 +21,34 @@ SR = 32000
 HOP = int(SR * HOP_S)
 
 
+def _median(S: np.ndarray, w: int, axis: int) -> np.ndarray:
+    """Same result as scipy.ndimage.median_filter(S, size=w along axis, mode='reflect'), ~10x faster
+    (bottleneck's running median instead of a full sort per window)."""
+    try:
+        import bottleneck as bn
+    except ImportError:
+        from scipy.ndimage import median_filter
+        size = [1] * S.ndim
+        size[axis] = w
+        return median_filter(S, size=size, mode="reflect")
+    pad = [(0, 0)] * S.ndim
+    pad[axis] = (w // 2, w // 2)
+    out = bn.move_median(np.pad(S, pad, mode="symmetric"), window=w, axis=axis)   # scipy 'reflect' == numpy 'symmetric'
+    return np.take(out, np.arange(w - 1, w - 1 + S.shape[axis]), axis=axis)
+
+
+def _hpss_percussive(D: np.ndarray, kernel_size=(17, 31)) -> np.ndarray:
+    """librosa.decompose.hpss(D, kernel_size, margin=1.0)[1] with the fast median."""
+    S, phase = librosa.magphase(D)
+    harm = _median(S, kernel_size[0], axis=-1)
+    perc = _median(S, kernel_size[1], axis=-2)
+    return S * librosa.util.softmask(perc, harm, power=2.0, split_zeros=True) * phase
+
+
 def extract_percussion(accomp_wav, out_dir, n_frames: int) -> dict:
     y, _ = librosa.load(str(accomp_wav), sr=SR, mono=True)
     D = librosa.stft(y, n_fft=2048, hop_length=HOP)
-    _, Pc = librosa.decompose.hpss(D, kernel_size=(17, 31), margin=1.0)
+    Pc = _hpss_percussive(D, kernel_size=(17, 31))
     yp = librosa.istft(Pc, hop_length=HOP, length=len(y))
     sf.write(str(out_dir / "percussion.wav"), yp, SR, subtype="PCM_16")
 

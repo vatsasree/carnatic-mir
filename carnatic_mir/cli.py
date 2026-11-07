@@ -23,7 +23,7 @@ import pandas as pd
 from .config import OUTPUTS, SEPARATION_PRESETS
 from .features import flatten_summary
 from .pipeline import process, recompute_features
-from .youtube import download, is_url, read_list
+from .youtube import RAW, download, is_url, read_list
 
 
 def _ts(s: str) -> float:
@@ -43,6 +43,16 @@ def collect_summary() -> Path:
     dst = OUTPUTS / "summary.csv"
     pd.DataFrame(rows).to_csv(dst, index=False)
     return dst
+
+
+def _local(src: str) -> Path:
+    """An audio path as given, or a bare file name looked up in data/raw/."""
+    p = Path(src).expanduser()
+    if not p.exists() and (RAW / p.name).exists():
+        return RAW / p.name
+    if not p.exists():
+        raise FileNotFoundError(src)
+    return p
 
 
 def _run_workers(n: int, n_jobs: int) -> int:
@@ -82,7 +92,8 @@ def main():
     ap.add_argument("--end", type=_ts, help="excerpt end, seconds or mm:ss")
     ap.add_argument("--force", action="store_true", help="recompute every stage")
     ap.add_argument("--summary", action="store_true", help="write outputs/summary.csv for all tracks")
-    ap.add_argument("--urls", help="text file: one 'URL [start [end]]' per line, # for comments")
+    ap.add_argument("--urls", "--list", dest="urls",
+                    help="job list: one 'URL-or-audio-file [start [end]]' per line, # for comments")
     ap.add_argument("--workers", type=int, default=1,
                     help="process this many tracks in parallel (separate processes; for a big GPU with many CPU cores)")
     ap.add_argument("--shard", help=argparse.SUPPRESS)          # 'i/n', set by --workers
@@ -105,7 +116,7 @@ def main():
         if len(jobs) > 1:
             print(f"\n[{i}/{len(jobs)}] {src}")
         try:
-            paths = download(src, playlist=a.playlist) if is_url(src) else [Path(src)]
+            paths = download(src, playlist=a.playlist) if is_url(src) else [_local(src)]
             for p in paths:
                 if p.is_dir() and (p / "frames.csv").exists():
                     recompute_features(p, tonic_hz=a.tonic)

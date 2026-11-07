@@ -34,19 +34,25 @@ def _safe(title: str) -> str:
     return re.sub(r"[^\w\-]+", "_", title).strip("_")[:80] or "track"
 
 
+_TIME = re.compile(r"^\d+(:\d+){0,2}(\.\d+)?$")
+
+
 def read_list(path) -> list[tuple[str, str | None, str | None]]:
-    """Parse a URL list file -> [(url, start, end)]; start/end are raw strings or None."""
+    """Parse a job list -> [(url_or_file, start, end)]; start/end are raw strings or None.
+    Each line: a URL or an audio file path (spaces allowed), then optionally start and end times."""
     jobs = []
     for n, line in enumerate(Path(path).read_text().splitlines(), 1):
         line = line.split(" #")[0].strip()
         if not line or line.startswith("#"):
             continue
-        parts = line.replace(",", " ").split()
-        if not is_url(parts[0]):
-            raise ValueError(f"{path}:{n}: not a URL: {parts[0]}")
-        if len(parts) not in (1, 2, 3):
+        parts = line.split()
+        times = []
+        while len(parts) > 1 and len(times) < 2 and _TIME.match(parts[-1].rstrip(",")):
+            times.insert(0, parts.pop().rstrip(","))
+        src = " ".join(parts).rstrip(",")
+        if is_url(src) and " " in src:
             raise ValueError(f"{path}:{n}: expected 'URL [start [end]]', got: {line}")
-        jobs.append((parts[0], *(parts[1:] + [None, None])[:2]))
+        jobs.append((src, *(times + [None, None])[:2]))
     return jobs
 
 
