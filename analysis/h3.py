@@ -72,7 +72,7 @@ def paired_test(diff: np.ndarray, n_boot: int = 5000) -> dict:
 
 def compare(table: pd.DataFrame, features: dict, level: str) -> pd.DataFrame:
     rows = []
-    w = table.pivot(index="pair", columns="condition", values=list(features))
+    w = table.groupby(["pair", "condition"])[list(features)].mean().unstack("condition")   # versions averaged per song
     for f, sign in features.items():
         L, N = w[(f, "lullaby")].to_numpy(float), w[(f, "non_lullaby")].to_numpy(float)
         r = dict(level=level, feature=f, predicted=("higher" if sign == 1 else "lower" if sign == -1 else "none"),
@@ -87,10 +87,11 @@ def compare(table: pd.DataFrame, features: dict, level: str) -> pd.DataFrame:
 
 def run(snippets: pd.DataFrame, snippet_means: pd.DataFrame | None = None) -> dict:
     sn = snippets[snippets["pair"] != "PRACTICE"]
-    snip = pd.DataFrame([{"pair": r.pair, "condition": r.condition, "track_id": r.track_id, "token": r.token,
+    snip = pd.DataFrame([{"pair": r.pair, "condition": r.condition, "version": getattr(r, "version", 1),
+                          "track_id": r.track_id, "token": r.token,
                           **snippet_profile(r.track_id, float(r.start_s), float(r.end_s))} for r in sn.itertuples()])
     song = pd.DataFrame([{"pair": r.pair, "condition": r.condition, "track_id": r.track_id,
-                          **song_profile(r.track_id)} for r in sn.itertuples()])
+                          **song_profile(r.track_id)} for r in sn.drop_duplicates("track_id").itertuples()])
     res = {"snippet_features": snip, "song_features": song,
            "h3": pd.concat([compare(snip, SNIPPET_FEATURES, "snippet"), compare(song, SONG_FEATURES, "whole song")])}
     if snippet_means is not None and len(snippet_means):     # exploratory link H1 <-> H3 (20 snippets)

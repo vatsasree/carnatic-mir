@@ -9,7 +9,7 @@ A browser experiment for the lullaby study. Participants:
 6. **Phase 2**: hear the same 10 snippets again in a new order and hold a button / space bar while they feel *calm or soothing*
 7. final questions → completion code
 
-Each participant hears one song from each of the 10 pairs: **Set A** = lullabies of P1–P5 + non-lullabies of P6–P10,
+Each song has two non-overlapping snippets (versions 1 and 2); each participant hears one version of one song from each of the 10 pairs, versions balanced per song on the server: **Set A** = lullabies of P1–P5 + non-lullabies of P6–P10,
 **Set B** = the reverse. Sets are balanced on the server (overall, or within each age group when
 `balance_sets_by_age_group` is true in `study/config.json`); snippet order is random per person;
 one random Phase 1 trial carries an attention-check row. Works on laptops and phones.

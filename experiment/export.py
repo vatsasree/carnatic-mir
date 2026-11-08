@@ -61,7 +61,8 @@ def main():
 
     def snip(tok):
         s = sn.get(tok, {})
-        return {"pair": s.get("pair"), "condition": s.get("condition"), "track_id": s.get("track_id"),
+        return {"pair": s.get("pair"), "condition": s.get("condition"), "version": s.get("version") or "1",
+                "track_id": s.get("track_id"),
                 "snippet_start_s": s.get("start_s"), "snippet_end_s": s.get("end_s")}
 
     ratings, presses, phase2, events = [], [], [], []

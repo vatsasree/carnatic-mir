@@ -1,6 +1,6 @@
 """H1: lullabies are rated more soothing (primary), less arousing, and not less pleasant.
 
-Primary model:  soothing ~ lullaby + (1|participant) + (1|pair) + (1|song)
+Primary model:  soothing ~ lullaby + (1|participant) + (1|pair) + (1|song) + (1|snippet)
 fitted as a linear mixed model with crossed random effects (statsmodels MixedLM, variance components).
 With only 10 pairs, Wald z-tests are too liberal (13 % false positives in 60 null simulations), so the lullaby
 term's p-value and CI use a t distribution with df = pairs - 1 (8 %, consistent with 5 %), confirmed by the exact
@@ -16,7 +16,8 @@ from scipy import stats
 
 from .common import holm
 
-VC = {"participant": "0 + C(pid)", "pair": "0 + C(pair)", "song": "0 + C(track_id)"}
+VC = {"participant": "0 + C(pid)", "pair": "0 + C(pair)", "song": "0 + C(track_id)", "snippet": "0 + C(token)"}
+VC_COL = {"participant": "pid", "pair": "pair", "song": "track_id", "snippet": "token"}
 
 
 def mixed(df: pd.DataFrame, outcome: str, covariates: str = "", term: str = "lullaby") -> dict:
@@ -24,7 +25,9 @@ def mixed(df: pd.DataFrame, outcome: str, covariates: str = "", term: str = "lul
     import statsmodels.formula.api as smf
     d = df.dropna(subset=[outcome]).copy()
     formula = f"{outcome} ~ lullaby" + (f" + {covariates}" if covariates else "")
-    vc = {k: v for k, v in VC.items() if d[{"participant": "pid", "pair": "pair", "song": "track_id"}[k]].nunique() > 1}
+    vc = {k: v for k, v in VC.items() if d[VC_COL[k]].nunique() > 1}
+    if d["token"].nunique() <= d["track_id"].nunique():
+        vc.pop("snippet", None)                         # one snippet per song: snippet = song
     out = dict(outcome=outcome, model=formula, n_trials=len(d), n_participants=d["pid"].nunique(),
                n_songs=d["track_id"].nunique())
     try:
@@ -130,10 +133,23 @@ def run(R: pd.DataFrame, gems: list) -> dict:
     if "age" in R and R["age"].notna().sum() > 10 and R["age"].nunique() > 2:
         d = R.copy(); d["age_c"] = (d["age"] - d["age"].mean()) / 10          # per decade
         res["h4_age"] = pd.DataFrame([mixed(d, "soothing", "age_c + lullaby:age_c", term="lullaby:age_c")])
+    # two snippets per song: does the chosen section matter? (version 1 vs 2 of the same song)
+    if "version" in R and R["version"].nunique() > 1:
+        v = R.groupby(["pair", "condition", "track_id", "version"])["soothing"].mean().unstack("version")
+        v.columns = [f"version_{c}" for c in v.columns]
+        v = v.reset_index()
+        cols = [c for c in v.columns if c.startswith("version_")]
+        res["versions"] = v
+        if len(cols) == 2:
+            x = v[cols].dropna()
+            res["version_agreement"] = pd.DataFrame([dict(
+                songs=len(x), spearman_rho=x[cols[0]].rank().corr(x[cols[1]].rank()),
+                mean_abs_diff=(x[cols[0]] - x[cols[1]]).abs().mean())])
     # per-snippet means (used to link H1 and H3)
-    res["snippet_means"] = (R.groupby(["pair", "condition", "track_id", "token"])
+    keys = ["pair", "condition", "track_id", "token"] + (["version"] if "version" in R else [])
+    res["snippet_means"] = (R.groupby(keys)
                             [["soothing", "arousal", "valence", "liking"] + gems].mean().reset_index()
-                            .assign(n=R.groupby(["pair", "condition", "track_id", "token"]).size().values))
+                            .assign(n=R.groupby(keys).size().values))
     # free words per condition
     if "words" in R:
         w = (R.dropna(subset=["words"]).assign(word=lambda x: x["words"].str.lower().str.split(r"[,;/]| and "))

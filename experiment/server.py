@@ -30,9 +30,17 @@ def config() -> dict:
     return json.loads(CONFIG.read_text())
 
 
-def snippets() -> dict[tuple[str, str], dict]:
+def snippets() -> dict[tuple[str, str, str], dict]:
+    """(pair, condition, version) -> row of study/snippets.csv."""
     with open(SNIPPETS_CSV, newline="") as f:
-        return {(r["pair"], r["condition"]): r for r in csv.DictReader(f)}
+        return {(r["pair"], r["condition"], r.get("version") or "1"): r for r in csv.DictReader(f)}
+
+
+def pick_version(sn: dict, pair: str, cond: str, used: dict) -> str:
+    """The version of this song heard least so far (random on a tie): versions stay balanced per song."""
+    toks = {k[2]: r["token"] for k, r in sn.items() if k[:2] == (pair, cond)}
+    least = min(used.get(t, 0) for t in toks.values())
+    return toks[random.choice([v for v, t in toks.items() if used.get(t, 0) == least])]
 
 
 def _link(k: str | None) -> str:
@@ -58,7 +66,7 @@ def index():
 def public_config(k: str):
     _link(k)
     cfg = config()
-    sn = snippets()["PRACTICE", "practice"]
+    sn = snippets()["PRACTICE", "practice", "1"]
     return {"title": cfg["title"], "contact": cfg["contact"], "text": cfg["text"], "gems": cfg["gems"],
             "headphone_check": cfg["headphone_check"], "phase2_labels": cfg["phase2_labels"],
             "practice": {"token": sn["token"], "url": f"/audio/{sn['token']}.mp3"}}
@@ -83,7 +91,8 @@ def start(req: StartReq, request: Request):
     least = min(n.get(s, 0) for s in cfg["sets"])
     set_id = random.choice([s for s in cfg["sets"] if n.get(s, 0) == least])      # balance A/B per age group
     sn = snippets()
-    items = [sn[p, cond]["token"] for cond, pairs in cfg["sets"][set_id].items() for p in pairs]
+    used = store.token_counts()
+    items = [pick_version(sn, p, cond, used) for cond, pairs in cfg["sets"][set_id].items() for p in pairs]
     random.shuffle(items)
     order2 = items[:]
     random.shuffle(order2)

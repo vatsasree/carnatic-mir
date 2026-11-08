@@ -34,7 +34,7 @@ def main():
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     cfg = json.loads((ROOT / "study/config.json").read_text())
     sn = pd.read_csv(ROOT / "study/snippets.csv")
-    main_sn = sn[sn["pair"] != "PRACTICE"].set_index(["pair", "condition"])
+    main_sn = sn[sn["pair"] != "PRACTICE"]
     song_eff = {t: rng.normal(0, 0.4) for t in sn["token"]}
     ev = {r.token: events(snippet_frames(r.track_id, r.start_s, r.end_s)) for r in sn.itertuples()}
 
@@ -49,12 +49,14 @@ def main():
                   "profile.mood_valence": int(rng.integers(3, 8)), "headphone_correct": 6,
                   "headphone_passed": i != 1, "attention_trial": 3})
         person = rng.normal(0, 0.5)
-        toks = [main_sn.loc[(p, c), "token"] for c, ps in cfg["sets"][set_id].items() for p in ps]
+        toks = [rng.choice(main_sn[(main_sn["pair"] == p) & (main_sn["condition"] == c)]["token"].to_numpy())
+                for c, ps in cfg["sets"][set_id].items() for p in ps]
         for pos, tok in enumerate(rng.permutation(toks)):
             r = sn.set_index("token").loc[tok]
             lull = r["condition"] == "lullaby"
             base = 3 + person + song_eff[tok] + a.effect * lull
-            row = {"pid": pid, "token": tok, "pair": r["pair"], "condition": r["condition"], "track_id": r["track_id"],
+            row = {"pid": pid, "token": tok, "pair": r["pair"], "condition": r["condition"],
+                   "version": r.get("version", 1), "track_id": r["track_id"],
                    "snippet_start_s": r["start_s"], "snippet_end_s": r["end_s"], "position": pos,
                    "attention_trial": pos == 3, "tab_hidden_during_audio": 0,
                    "valence": int(np.clip(round(5 + rng.normal(0, 1.5)), 1, 9)),

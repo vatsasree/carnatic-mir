@@ -78,3 +78,12 @@ def save(pid: str, kind: str, item: str, payload, client_ts: float | None):
 def saved_keys(pid: str) -> list[str]:
     return [f"{r['kind']}:{r['item']}" for r in
             db().execute("SELECT kind, item FROM records WHERE pid=?", (pid,)).fetchall()]
+
+
+def token_counts() -> dict[str, int]:
+    """How many (non-excluded) participants were assigned each snippet token."""
+    n: dict[str, int] = {}
+    for (a,) in db().execute("SELECT assignment FROM participants WHERE status!='excluded'"):
+        for t in json.loads(a)["phase1"]:
+            n[t] = n.get(t, 0) + 1
+    return n

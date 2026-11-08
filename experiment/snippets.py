@@ -24,6 +24,7 @@ from .paths import PAIRS, SNIPPET_DIR, SNIPPETS_CSV, TRACKS
 
 MIN_S, MAX_S, TARGET_S = 37.0, 43.0, 40.0
 MIN_VOICED = 0.70
+VERSIONS = 2          # snippets per study song; each participant hears one of them
 PROFILE = ["elong", "stable", "simple_osc", "kampita", "glide", "range_c", "vel", "perc"]
 # smallest spread used to scale each measure (shares of sung time, cents, cents/s, share of time)
 FLOOR = dict(elong=0.05, stable=0.05, simple_osc=0.03, kampita=0.03, glide=0.03, range_c=100.0, vel=30.0, perc=0.1)
@@ -32,7 +33,7 @@ GAP_S = 0.3            # silence that separates two phrases
 LUFS, TRUE_PEAK = -23.0, -2.0
 FADE_S = 0.5
 PRACTICE_TRACK = "Moksamu_Galada_Bhuvilo-_Saramati-_Adi-_Thyagaraja-_ML_Vasanthaku_600-900s"
-FIELDS = ["pair", "condition", "track_id", "start_s", "end_s", "duration_s", "voiced_ratio", "distance",
+FIELDS = ["pair", "condition", "version", "track_id", "start_s", "end_s", "duration_s", "voiced_ratio", "distance",
           "n_candidates", "token", "note"]
 
 
@@ -97,15 +98,18 @@ def candidates(ts: pd.DataFrame, gap: float):
     return out
 
 
-def suggest(track_id: str) -> dict:
-    """Most representative phrase-aligned window (see module docstring)."""
+SEP_S = 10.0          # a second version starts or ends at least this far from the first
+
+def suggest(track_id: str, avoid: list | None = None) -> dict:
+    """Most representative phrase-aligned window (see module docstring), not overlapping `avoid` +/- SEP_S."""
     ts = load_ts(track_id)
     song = profile(ts)
     pool = {}                                             # phrase boundaries at several pause lengths
     for gap in (GAP_S, 0.15, 0.08):
         for c in candidates(ts, gap):
             pool.setdefault((round(c[0], 1), round(c[1], 1)), c)
-    allc = list(pool.values())
+    allc = [c for c in pool.values()
+            if not any(c[0] < e + SEP_S and c[1] > st - SEP_S for st, e in (avoid or []))]
     cands = [c for c in allc if c[4] >= MIN_VOICED]
     note = "auto"
     if not cands and allc:                                # little singing anywhere: most-sung window, flagged
@@ -137,24 +141,31 @@ def write_rows(rows: list[dict]):
 
 
 def cmd_suggest(force: bool):
-    old = {(r["pair"], r["condition"]): r for r in read_rows()} if SNIPPETS_CSV.exists() else {}
+    """VERSIONS windows per study song (1 for the practice piece); version 2 never overlaps version 1."""
+    old = {(r["pair"], r["condition"], r.get("version") or "1"): r for r in read_rows()} if SNIPPETS_CSV.exists() else {}
     with open(PAIRS, newline="") as f:
         jobs = [(r["pair"], r["condition"], r["track_id"]) for r in csv.DictReader(f)]
     jobs.append(("PRACTICE", "practice", PRACTICE_TRACK))
     rows = []
     for pair, cond, tid in jobs:
-        prev = old.get((pair, cond))
-        if prev and prev["track_id"] == tid and not force:   # keep hand-edited windows
-            rows.append(prev); continue
         if not (TRACKS / tid / "timeseries.csv").exists():
             sys.exit(f"{pair} {cond}: no features for {tid!r}")
-        r = dict(pair=pair, condition=cond, track_id=tid, token=(prev or {}).get("token") or secrets.token_hex(6))
-        r.update(suggest(tid))
-        rows.append(r)
-        print(f"{pair:>8} {cond:<11} {r['start_s']:>7.1f}-{r['end_s']:<7.1f} ({r['duration_s']:.1f}s, "
-              f"voiced {r['voiced_ratio']})  {tid[:50]}")
+        taken = []
+        for v in range(1, (1 if pair == "PRACTICE" else VERSIONS) + 1):
+            prev = old.get((pair, cond, str(v)))
+            if prev and prev["track_id"] == tid and not force:   # keep existing / hand-edited windows
+                r = prev
+            else:
+                r = dict(pair=pair, condition=cond, track_id=tid,
+                         token=(prev or {}).get("token") or secrets.token_hex(6))
+                r.update(suggest(tid, taken))
+            r["version"] = str(v)
+            taken.append((float(r["start_s"]), float(r["end_s"])))
+            rows.append(r)
+            print(f"{pair:>8} {cond:<11} v{v} {float(r['start_s']):>7.1f}-{float(r['end_s']):<7.1f} "
+                  f"(voiced {r['voiced_ratio']})  {r.get('note', '')}  {tid[:40]}")
     write_rows(rows)
-    print(f"wrote {SNIPPETS_CSV}; check the windows in the viewer, edit start_s/end_s if needed, then run 'cut'")
+    print(f"wrote {SNIPPETS_CSV}; check the windows, edit start_s/end_s if needed, then run 'cut'")
 
 
 def _loudnorm_args(src, s, d) -> str:
@@ -168,10 +179,12 @@ def _loudnorm_args(src, s, d) -> str:
             f"linear=true")
 
 
-def cmd_cut():
+def cmd_cut(force: bool = False):
     SNIPPET_DIR.mkdir(parents=True, exist_ok=True)
     rows = read_rows()
     for r in rows:
+        if (SNIPPET_DIR / f"{r['token']}.mp3").exists() and not force:
+            continue
         src = TRACKS / r["track_id"] / "mix.wav"
         if not src.exists():
             src = TRACKS / r["track_id"] / "mix.m4a"
@@ -191,9 +204,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     sp = sub.add_parser("suggest"); sp.add_argument("--force", action="store_true", help="overwrite edited windows")
-    sub.add_parser("cut")
+    sc = sub.add_parser("cut"); sc.add_argument("--force", action="store_true", help="re-cut existing files too")
     a = ap.parse_args()
-    cmd_suggest(a.force) if a.cmd == "suggest" else cmd_cut()
+    cmd_suggest(a.force) if a.cmd == "suggest" else cmd_cut(a.force)
 
 
 if __name__ == "__main__":
