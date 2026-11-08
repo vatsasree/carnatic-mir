@@ -18,5 +18,5 @@ results/**/*.log.tmp
 logs/
 
 # listening study: copyrighted audio and personal data never go to git
-study/snippets/
+# study/snippets/ is committed: the repository must be PRIVATE (copyrighted audio)
 study/data/
