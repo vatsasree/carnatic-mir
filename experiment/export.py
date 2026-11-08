@@ -5,6 +5,7 @@
 participants.csv  one row per participant (profile flattened, assignment, headphone result, status)
 ratings.csv       one row per participant x snippet (pair, condition, GEMS, valence, arousal, ...)
 presses.csv       one row per key hold in phase 2 (start/end in snippet seconds)
+phase2_trials.csv one row per participant x snippet in phase 2 (n_holds may be 0)
 events.csv        tab hidden, focus lost, audio errors, ...
 """
 import csv
@@ -63,13 +64,18 @@ def main():
         return {"pair": s.get("pair"), "condition": s.get("condition"), "track_id": s.get("track_id"),
                 "snippet_start_s": s.get("start_s"), "snippet_end_s": s.get("end_s")}
 
-    ratings, presses, events = [], [], []
+    ratings, presses, phase2, events = [], [], [], []
     for r in recs:
         pl = json.loads(r["payload"])
         if r["kind"] == "rating":
             ratings.append({"pid": r["pid"], "token": r["item"], **snip(r["item"]), **_flat(pl)})
         elif r["kind"] == "presses":
             tok, _, label = r["item"].partition("|")
+            phase2.append({"pid": r["pid"], "token": tok, **snip(tok), "label": label, "n_holds": len(pl["holds"]),
+                           "held_s": round(sum(t1 - t0 for t0, t1 in pl["holds"]), 3),
+                           "duration_s": pl.get("duration_s"), "position": pl.get("position"),
+                           "output_latency_s": pl.get("output_latency_s"), "input": pl.get("input"),
+                           "tab_hidden_during_audio": pl.get("tab_hidden_during_audio")})
             for i, (t0, t1) in enumerate(pl["holds"]):
                 presses.append({"pid": r["pid"], "token": tok, **snip(tok), "label": label, "n": i,
                                 "start_s": t0, "end_s": t1, "duration_s": round(t1 - t0, 3),
@@ -78,6 +84,7 @@ def main():
             events.append({"pid": r["pid"], "kind": r["kind"], "item": r["item"], **_flat(pl)})
     _write("ratings.csv", ratings)
     _write("presses.csv", presses)
+    _write("phase2_trials.csv", phase2)      # one row per listener x snippet, also when nothing was marked
     _write("events.csv", events)
 
 

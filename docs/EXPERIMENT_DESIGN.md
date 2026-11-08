@@ -57,6 +57,8 @@ Data are collected over about 18 hours for a Wednesday deadline, so the study ru
 
 **Ethics:** confirm with the institution whether an anonymous online listening study needs approval or an exemption before data are used in the paper.
 
+**Inference for H1 (fixed before data collection).** With only 10 pairs, Wald z-tests from the mixed model are too liberal: on 60 simulated datasets with no true effect they rejected 13 % of the time. The lullaby term's p-value and 95 % CI therefore use a t distribution with df = number of pairs - 1 (8 % on the same 60 datasets, consistent with 5 %), and the result must be confirmed by the exact sign-flip permutation test over the 10 pair differences. The H2 event-locked permutation test rejected 3.6 % of 84 null tests. The analysis code is in `analysis/` (`python -m analysis.report`).
+
 ## Background and rationale
 
 Lullabies are found in almost every culture and share recognisable traits: slow tempo, narrow pitch range, repetition, long held notes and soft, gradual onsets. Listeners across cultures can often identify a lullaby without knowing the language. Most of this work rates whole songs or uses Western stimuli; little of it ties the felt response to specific moments in the music, and almost none uses Indian vocal traditions with their characteristic ornaments (gamakas: glides, kampita oscillations, sphurita).

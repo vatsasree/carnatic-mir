@@ -69,3 +69,19 @@ participant switched away while the music played.
 ## Timing
 Holds are timed on the audio clock (`AudioContext.currentTime`), so they are relative to what was actually played;
 `output_latency_s` (typically 10–40 ms; more over Bluetooth) is stored per trial and can be subtracted.
+
+## 5. Analysis
+```bash
+python -m experiment.export          # responses -> study/data/export/
+python -m analysis.report            # -> study/data/results/: summary.md, h1_*/h2_*/h3_*.csv, fig_*.png
+```
+- Exclusions are applied exactly as pre-registered (`analysis/common.py`); `participants_with_exclusions.csv` lists the reason for each.
+- **H1** (`analysis/h1.py`): mixed model `soothing ~ lullaby + (1|participant) + (1|pair) + (1|song)`; the lullaby term's
+  p and CI use t with df = pairs - 1, confirmed by an exact permutation test over the 10 pair differences; per-listener
+  and per-pair checks; secondary outcomes with Holm; valence equivalence (TOST, +/- 0.5); sensitivity analyses; H4 age interaction.
+- **H2** (`analysis/h2.py`): press curves per snippet (latency-corrected); change in share holding 0-3 s after vs 1 s before
+  plain / ornamented held notes, glides, simple oscillations, heavy kampita, phrase onsets and percussion entries, against
+  random times in the same snippets (2000 permutations); lagged regression on frame features (exploratory).
+- **H3** (`analysis/h3.py`): lullaby minus non-lullaby on snippet and whole-song features, exact paired permutation over pairs.
+- Test the pipeline without real data: `python -m analysis.simulate --out /tmp/sim && python -m analysis.report --export /tmp/sim --out /tmp/sim/results --quick`.
+  On null simulations the H1 test rejects in 8 % of 60 datasets (z-tests: 13 %), H2 in 3.6 % of 84 tests.
