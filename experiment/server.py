@@ -79,7 +79,7 @@ def start(req: StartReq, request: Request):
     except (TypeError, ValueError):
         raise HTTPException(400, "Please enter your age.")
     group = _age_group(cfg, age)
-    n = store.counts(group)
+    n = store.counts(group if cfg.get("balance_sets_by_age_group", True) else None)
     least = min(n.get(s, 0) for s in cfg["sets"])
     set_id = random.choice([s for s in cfg["sets"] if n.get(s, 0) == least])      # balance A/B per age group
     sn = snippets()

@@ -4,8 +4,11 @@
     (check / edit start_s and end_s in the viewer, e.g. http://127.0.0.1:8765/#<track_id>)
     python -m experiment.snippets cut         # writes study/snippets/<token>.mp3 (loudness-normalised)
 
-A suggested window starts just before a sung phrase and ends just after one, lasts MIN..MAX seconds and has
-the highest share of sung (voiced) frames. File names are random tokens, so the URL never reveals the condition.
+Selection rule (fixed before data collection): a window starts just before a sung phrase and ends just after
+one, lasts MIN_S..MAX_S seconds, is at least MIN_VOICED sung, and among those is the most REPRESENTATIVE of the
+whole song: its profile (held-note share, oscillation / kampita / glide shares, pitch range, pitch movement,
+percussion activity) is closest to the whole song's, each measure scaled by its spread across candidate windows.
+File names are random tokens, so the URL never reveals the condition.
 """
 import argparse
 import csv
@@ -19,20 +22,52 @@ import pandas as pd
 
 from .paths import PAIRS, SNIPPET_DIR, SNIPPETS_CSV, TRACKS
 
-MIN_S, MAX_S, TARGET_S = 30.0, 45.0, 40.0
+MIN_S, MAX_S, TARGET_S = 37.0, 43.0, 40.0
+MIN_VOICED = 0.70
+PROFILE = ["elong", "stable", "simple_osc", "kampita", "glide", "range_c", "vel", "perc"]
+# smallest spread used to scale each measure (shares of sung time, cents, cents/s, share of time)
+FLOOR = dict(elong=0.05, stable=0.05, simple_osc=0.03, kampita=0.03, glide=0.03, range_c=100.0, vel=30.0, perc=0.1)
 PAD_S = 0.3            # keep the breath before / decay after a phrase
 GAP_S = 0.3            # silence that separates two phrases
 LUFS, TRUE_PEAK = -23.0, -2.0
 FADE_S = 0.5
 PRACTICE_TRACK = "Moksamu_Galada_Bhuvilo-_Saramati-_Adi-_Thyagaraja-_ML_Vasanthaku_600-900s"
-FIELDS = ["pair", "condition", "track_id", "start_s", "end_s", "duration_s", "voiced_ratio", "token", "note"]
+FIELDS = ["pair", "condition", "track_id", "start_s", "end_s", "duration_s", "voiced_ratio", "distance",
+          "n_candidates", "token", "note"]
 
 
-def phrases(track_id: str, gap_s: float = GAP_S) -> tuple[np.ndarray, np.ndarray, float]:
-    """(onsets, offsets, duration) of sung phrases from the track's pitch time series."""
-    ts = pd.read_csv(TRACKS / track_id / "timeseries.csv", usecols=["time", "voiced"])
+def _bool(s) -> np.ndarray:
+    return s.astype(str).str.lower().eq("true").to_numpy()
+
+
+def load_ts(track_id: str) -> pd.DataFrame:
+    return pd.read_csv(TRACKS / track_id / "timeseries.csv",
+                       usecols=["time", "voiced", "cents", "pitch_velocity_cents_s", "event", "elongation",
+                                "perc_active"])
+
+
+def profile(ts: pd.DataFrame, i: int = 0, j: int | None = None) -> dict:
+    """Musical profile of frames i..j (shares are over sung frames)."""
+    w = ts.iloc[i:j]
+    v = _bool(w["voiced"])
+    n = max(v.sum(), 1)
+    ev = w["event"].to_numpy()[v]
+    c = w["cents"].to_numpy()[v]
+    c = c[np.isfinite(c)]
+    vel = np.abs(w["pitch_velocity_cents_s"].to_numpy()[v])
+    return dict(voiced=v.mean(), elong=_bool(w["elongation"])[v].sum() / n,
+                stable=(ev == 1).sum() / n, simple_osc=(ev == 2).sum() / n, kampita=(ev == 3).sum() / n,
+                glide=(ev == 4).sum() / n,
+                range_c=float(np.subtract(*np.percentile(c, [95, 5]))) if c.size > 10 else 0.0,
+                vel=float(np.nanmedian(vel)) if vel.size else 0.0, perc=_bool(w["perc_active"]).mean())
+
+
+def phrases(track_id: str, gap_s: float = GAP_S, ts: pd.DataFrame | None = None):
+    """(onsets, offsets, duration, (t, voiced)) of sung phrases from the track's pitch time series."""
+    if ts is None:
+        ts = load_ts(track_id)
     t = ts["time"].to_numpy()
-    v = ts["voiced"].astype(str).str.lower().eq("true").to_numpy()
+    v = _bool(ts["voiced"])
     hop = float(np.median(np.diff(t)))
     edges = np.diff(np.r_[0, v.astype(int), 0])
     on, off = np.flatnonzero(edges == 1), np.flatnonzero(edges == -1)        # off is exclusive
@@ -45,30 +80,45 @@ def phrases(track_id: str, gap_s: float = GAP_S) -> tuple[np.ndarray, np.ndarray
     return t[np.array(keep_on, int)], t[np.array(keep_off, int) - 1] + hop, float(t[-1] + hop), (t, v)
 
 
-def suggest(track_id: str) -> dict:
-    """Best window by voiced share, starting/ending at phrase boundaries."""
-    for gap in (GAP_S, 0.15, 0.08):                       # fall back to shorter pauses for continuous singing
-        on, off, dur, (t, v) = phrases(track_id, gap)
-        cv = np.r_[0, np.cumsum(v)]
-        best = None
-        for a in on:
-            s = max(0.0, a - PAD_S)
-            for b in off[off > a]:
-                e = min(dur, b + PAD_S)
-                L = e - s
-                if L > MAX_S:
-                    break
-                if L < MIN_S:
-                    continue
+def candidates(ts: pd.DataFrame, gap: float):
+    """Phrase-aligned windows of MIN_S..MAX_S seconds: [(start, end, i, j, voiced share)]."""
+    on, off, dur, (t, v) = phrases("", gap, ts)
+    cv = np.r_[0, np.cumsum(v)]
+    out = []
+    for a in on:
+        s = max(0.0, a - PAD_S)
+        for b in off[off > a]:
+            e = min(dur, b + PAD_S)
+            if e - s > MAX_S:
+                break
+            if e - s >= MIN_S:
                 i, j = np.searchsorted(t, [s, e])
-                ratio = (cv[j] - cv[i]) / max(j - i, 1)
-                score = ratio - 0.002 * abs(L - TARGET_S)
-                if best is None or score > best[0]:
-                    best = (score, s, e, ratio)
-        if best:
-            _, s, e, ratio = best
-            return dict(start_s=round(s, 2), end_s=round(e, 2), duration_s=round(e - s, 2),
-                        voiced_ratio=round(ratio, 3), note="auto" if gap == GAP_S else f"auto (gap {gap}s)")
+                out.append((s, e, i, j, (cv[j] - cv[i]) / max(j - i, 1)))
+    return out
+
+
+def suggest(track_id: str) -> dict:
+    """Most representative phrase-aligned window (see module docstring)."""
+    ts = load_ts(track_id)
+    song = profile(ts)
+    pool = {}                                             # phrase boundaries at several pause lengths
+    for gap in (GAP_S, 0.15, 0.08):
+        for c in candidates(ts, gap):
+            pool.setdefault((round(c[0], 1), round(c[1], 1)), c)
+    allc = list(pool.values())
+    cands = [c for c in allc if c[4] >= MIN_VOICED]
+    note = "auto"
+    if not cands and allc:                                # little singing anywhere: most-sung window, flagged
+        cands, note = [max(allc, key=lambda c: c[4])], f"below {MIN_VOICED:.0%} sung - CHECK"
+    if cands:
+        profs = [profile(ts, i, j) for _, _, i, j, _ in cands]
+        spread = {k: max(np.std([p[k] for p in profs]), FLOOR[k]) for k in PROFILE}
+        dist = [np.mean([abs(p[k] - song[k]) / spread[k] for k in PROFILE]) for p in profs]
+        best = int(np.argmin(dist))
+        s, e, _, _, ratio = cands[best]
+        return dict(start_s=round(s, 2), end_s=round(e, 2), duration_s=round(e - s, 2),
+                    voiced_ratio=round(ratio, 3), distance=round(dist[best], 3), n_candidates=len(cands), note=note)
+    on, off, dur, _ = phrases(track_id, GAP_S, ts)
     s = max(0.0, min(dur - TARGET_S, dur / 3))            # no phrase structure found: fixed window
     return dict(start_s=round(s, 2), end_s=round(s + TARGET_S, 2), duration_s=TARGET_S, voiced_ratio=None,
                 note="fixed window - CHECK")

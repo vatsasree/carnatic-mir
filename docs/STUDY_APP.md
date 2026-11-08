@@ -5,12 +5,13 @@ A browser experiment for the lullaby study. Participants:
 2. profile + current mood
 3. volume setting
 4. headphone check (Woods et al. 2017)
-5. **Phase 1**: rate 10 snippets (GEMS-9, valence, arousal, liking, familiarity, lyrics understood, free words)
+5. **Phase 1**: rate 10 snippets (5 GEMS items, valence, arousal, liking, familiarity, lyrics understood, free words)
 6. **Phase 2**: hear the same 10 snippets again in a new order and hold a button / space bar while they feel *calm or soothing*
 7. final questions → completion code
 
 Each participant hears one song from each of the 10 pairs: **Set A** = lullabies of P1–P5 + non-lullabies of P6–P10,
-**Set B** = the reverse. Sets are balanced within each age group on the server; snippet order is random per person;
+**Set B** = the reverse. Sets are balanced on the server (overall, or within each age group when
+`balance_sets_by_age_group` is true in `study/config.json`); snippet order is random per person;
 one random Phase 1 trial carries an attention-check row. Works on laptops and phones.
 
 ## Files
@@ -26,7 +27,8 @@ one random Phase 1 trial carries an attention-check row. Works on laptops and ph
 
 ## 1. Snippets
 ```bash
-python -m experiment.snippets suggest   # proposes a 30-45 s window per song (phrase boundaries, most singing)
+python -m experiment.snippets suggest   # proposes a 37-43 s phrase-aligned window per song: the one closest to the
+                                        # whole song's profile among windows that are at least 70 % sung
 ```
 Check each window in the viewer (`./scripts/start_viewer.sh`, open the track, look at start_s..end_s). Edit
 `start_s` / `end_s` in `study/snippets.csv` where needed, then:

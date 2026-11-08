@@ -39,10 +39,11 @@ def db() -> sqlite3.Connection:
     return _con
 
 
-def counts(age_group: str) -> dict[str, int]:
-    """Participants per set in one age group, ignoring those excluded by the headphone check."""
-    rows = db().execute("SELECT set_id, COUNT(*) n FROM participants WHERE age_group=? AND status!='excluded' "
-                        "GROUP BY set_id", (age_group,)).fetchall()
+def counts(age_group: str | None = None) -> dict[str, int]:
+    """Participants per set (in one age group, or overall when None), ignoring headphone-check exclusions."""
+    where, args = ("AND age_group=?", (age_group,)) if age_group else ("", ())
+    rows = db().execute(f"SELECT set_id, COUNT(*) n FROM participants WHERE status!='excluded' {where} "
+                        "GROUP BY set_id", args).fetchall()
     return {r["set_id"]: r["n"] for r in rows}
 
 

@@ -30,6 +30,33 @@ We test whether Indian lullabies make listeners feel more soothed than matched n
 
 Items still to decide are collected in the Decisions section with a recommended default for each.
 
+## Revised plan for the workshop deadline (9 Nov 2026)
+
+Data are collected over about 18 hours for a Wednesday deadline, so the study runs as an exploratory version of the full design. These changes override the sections below where they differ; they are fixed before data collection.
+
+| Item | Full design (below) | What we run now |
+| --- | --- | --- |
+| Participants | 4 age groups x 30 (recruit \~140) | 30-40 completers overall; minimum 20 (10 per set). Age recorded, reported descriptively; H4 not claimed |
+| Balancing | Set A / B within each age group | Set A / B balanced overall |
+| Snippets per song | 2 recommended | 1 per song |
+| Snippet selection | Most representative, at least 70 % sung | Implemented: phrase-aligned 37-43 s window closest to the whole song's profile (held-note share, steady / oscillation / kampita / glide shares, p5-p95 pitch range, pitch movement, percussion activity), among windows at least 70 % sung |
+| Snippet length | 40 s +/- 3 s | Lullabies mean 40.1 s, non-lullabies 39.7 s; singing 87 % vs 83 % |
+| Rating form | GEMS-9 + valence + arousal + liking | 5 GEMS items (Peacefulness, Tenderness, Sadness, Joyful activation, Tension) + valence + arousal + liking + familiarity + lyrics + optional words |
+| Primary outcome | mean(Peacefulness, Tenderness) | Unchanged |
+| Phase 2 | Hold while calm or soothing | Unchanged |
+| Session length | \~35 min | \~25 min |
+| Pre-registration | OSF | This document's timestamped git commit before launch |
+| Hosting | Institution server | Laptop + Cloudflare quick tunnel for the collection window (laptop plugged in, sleep disabled) |
+| Pilot | 5-8 people in person | 2-3 people, 30 minutes, before launch |
+
+**Why multiple pairs per person, not one full-song pair.** One pair per person gives one noisy comparison per listener: if the lullaby does not soothe that person, song, person and chance cannot be told apart, and with \~30 people each pair would get about 3 listeners. Hearing 5 lullabies and 5 non-lullabies averages over songs within each person, gives each song \~15-20 listeners, and never reveals a pair's contrast. Full songs (2-15 min) would also make song length a confound.
+
+**Why varied timbre and raga across pairs is acceptable.** Within a pair, matching holds singer and style constant. Across pairs, variety shows the effect is not tied to one voice or raga; random effects for pair and song absorb song-to-song differences. The five same-singer pairs (P3, P5, P6, P9, P10) are the main sensitivity check; raga, singer and language are recorded per song.
+
+**Flagged snippet:** P4 non-lullaby (Idhigo Bhadradri) has little singing overall; its best window is 61 % sung. Listen before launch and decide whether to keep it.
+
+**Ethics:** confirm with the institution whether an anonymous online listening study needs approval or an exemption before data are used in the paper.
+
 ## Background and rationale
 
 Lullabies are found in almost every culture and share recognisable traits: slow tempo, narrow pitch range, repetition, long held notes and soft, gradual onsets. Listeners across cultures can often identify a lullaby without knowing the language. Most of this work rates whole songs or uses Western stimuli; little of it ties the felt response to specific moments in the music, and almost none uses Indian vocal traditions with their characteristic ornaments (gamakas: glides, kampita oscillations, sphurita).
