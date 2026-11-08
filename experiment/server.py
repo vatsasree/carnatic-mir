@@ -130,7 +130,8 @@ def save(req: SaveReq):
     if not p or req.kind not in KINDS:
         raise HTTPException(400)
     store.save(req.pid, req.kind, req.item, req.payload, req.client_ts)
-    if req.kind == "headphone" and req.item == "result" and not req.payload.get("passed"):
+    if (req.kind == "headphone" and req.item == "result" and not req.payload.get("passed")
+            and config()["headphone_check"].get("required", True)):
         store.set_status(req.pid, "excluded")       # frees the slot for balancing
     return {"ok": True}
 

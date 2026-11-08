@@ -117,7 +117,7 @@ async function welcome() {
   screen(`<h1>${esc(CFG.title)}</h1><div class="card"><p>${esc(t.welcome)}</p></div>
     <h2>Consent</h2><div class="card"><p>${esc(t.consent)}</p><p class="small muted">Contact: ${esc(CFG.contact)}</p>
     <label class="check"><input type="checkbox" id="c1"> I am 18 or older and agree to take part.</label>
-    <label class="check"><input type="checkbox" id="c2"> I have headphones and I am in a quiet place.</label></div>
+    <label class="check"><input type="checkbox" id="c2"> I am in a quiet place (headphones or earphones recommended).</label></div>
     ${next('Start')}`);
   const b = $('#next'); b.disabled = true;
   const upd = () => b.disabled = !($('#c1').checked && $('#c2').checked);
@@ -160,7 +160,6 @@ async function profile() {
     if (!(age >= 18 && age <= 120)) err = 'Please enter your age (18 or older).';
     else if (!lang1) err = 'Please choose your first language.';
     else if (missing.length) { err = 'Please answer the questions marked in red.'; missing[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-    else if (out.headphones === 'speakers') err = 'This study needs headphones or earphones. Please connect them and choose the right option.';
     if (err) { $('#msg').textContent = err; continue; }
     const prof = {
       ...out, age, lang1, region: $('#region').value.trim(),
@@ -178,7 +177,7 @@ async function profile() {
 }
 
 async function calibrate() {
-  screen(`<h1>Set your volume</h1><div class="card"><p>Put on your headphones. Press <b>Play sample</b> and set your
+  screen(`<h1>Set your volume</h1><div class="card"><p>If you have headphones or earphones, please use them. Press <b>Play sample</b> and set your
     volume to a comfortable level, as you would for listening to music. <b>Please do not change the volume after this.</b></p>
     <div class="actions"><button id="ps" class="secondary">Play sample</button><span class="muted small" id="st"></span></div></div>
     ${next('The volume is comfortable')}`);
@@ -236,14 +235,15 @@ async function headphoneCheck() {
     save('headphone', 'attempt' + attempt, { correct, trials, passed });
     if (passed) { save('headphone', 'result', { correct, passed: true, attempts: attempt }); return true; }
     if (attempt < H.attempts) {
-      screen(`<h1>Let's try that once more</h1><div class="card"><p>Please make sure your headphones are on properly
-        (left and right on the correct ears) and that you are in a quiet place.</p></div>${next('Try again')}`);
+      screen(`<h1>Let's try that once more</h1><div class="card"><p>If you are using headphones, please check they are on
+        properly (left and right on the correct ears).</p></div>${next('Try again')}`);
       await clicked($('#next'));
     } else {
       save('headphone', 'result', { correct, passed: false, attempts: attempt });
     }
   }
   await flush();
+  if (!H.required) return false;       // check is informative only: everyone continues, result is stored
   screen(`<h1>Thank you</h1><div class="card"><p>Unfortunately the sound check suggests that the sound is not reaching
     you through headphones, which this study needs. Thank you very much for your time; you can close this page now.</p></div>`);
   S.ended = true; persist();

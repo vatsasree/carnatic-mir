@@ -2,7 +2,6 @@
 
 Participant exclusions (docs/EXPERIMENT_DESIGN.md, "Quality control and exclusion rules"):
   incomplete       status != complete
-  headphone        failed the headphone check
   attention        answer other than 2 on the attention row
   straight_lining  the same value on more than 80 % of rating rows (averaged over scales)
   too_fast         total time under 50 % of the median completion time
@@ -64,7 +63,8 @@ def load(export: Path = EXPORT) -> Study:
     def flag(mask, why):
         P.loc[mask & (P["reason"] == ""), "reason"] = why
     flag(P["status"] != "complete", "incomplete")
-    flag(~_truthy(P.get("headphone_passed", pd.Series(False, index=P.index))), "headphone")
+    P["headphones_ok"] = _truthy(P.get("headphone_passed", pd.Series(False, index=P.index)))
+    # headphone check is informative only (config "required": false): sensitivity analysis, not an exclusion
     main = R[R["condition"] != "practice"]
     if "attention" in main:
         att = main[_truthy(main["attention_trial"])].set_index("pid")["attention"]
@@ -90,6 +90,7 @@ def load(export: Path = EXPORT) -> Study:
     R["lyrics_n"] = R["lyrics"].map(LYRICS)
     R["same_singer"] = R["pair"].isin(SAME_SINGER)
     prof = P.set_index("pid")
+    R["headphones_ok"] = R["pid"].map(prof["headphones_ok"])
     for c in ("age", "years_indian_training", "mood_valence", "mood_arousal", "lullaby_heard", "lullaby_sung"):
         if f"profile.{c}" in prof:
             R[c] = R["pid"].map(prof[f"profile.{c}"])
