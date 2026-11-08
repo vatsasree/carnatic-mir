@@ -1,0 +1,22 @@
+pair,condition,track_id,start_s,end_s,duration_s,voiced_ratio,token,note
+P1,lullaby,Annamayya_Video_Song_-_Alara_Chanchalamaina_-_Nagarjuna_Ramya_Krishnan_Kasturi_F,16.52,53.99,37.47,0.9,42155652f6d4,auto (gap 0.15s)
+P1,non_lullaby,Ye_Divilo_Virisina_Male_Video_Song_Kanne_Vayasu_Movie_Roja_Ramani_Sharath_Babu_d,142.29,185.27,42.98,0.917,c3443492da72,auto
+P2,lullaby,Sadiseyaku_ooh_Gali_Sadi_Seyakogali_Song_Raja_Makutam_NTR_Raja_Sulochana_Old_Son,135.72,174.79,39.07,0.845,dbff119335b9,auto
+P2,non_lullaby,Kannada_Song_-_Baa_Beega_Manamohanaa_-_P_Leela_BraydJLSNqU,60.18,96.98,36.8,0.833,171b0f4eb492,auto
+P3,lullaby,Morpeechhni_Rajaai_Odhi_____________HARIHARAN_sF-m3hKHFZo,333.61,370.2,36.59,0.934,faca853f91dd,auto
+P3,non_lullaby,Shwaas_Mee_Full_Song_-_Hariharan_Kedar_Bhagwat_Dr_D_A_Bhagwat_RR1bIAPM3Ro,194.68,226.0,31.32,0.91,a5b6ceb99fa8,auto
+P4,lullaby,Laali_Yugave__C7ysIMkKow,288.54,328.12,39.58,0.923,0578624fef22,auto
+P4,non_lullaby,Idhigo_Bhadradri_-_Lyrical_Lord_Ram_Dr_M_Balamuralikrishna_Sri_Bhadrachala_Ramad,91.02,128.87,37.85,0.601,4e68110c1191,auto
+P5,lullaby,Jo_Achuthananda_-_MS_Subbulakshmi_baz_EeZmYRI,35.81,75.14,39.33,0.886,bd719ce7d0e1,auto
+P5,non_lullaby,Rara_Chiinanna_Audio_Song_M_S_Subbulakshmi_Radha_Vishwanathan_Carnatic_Classical,64.71,102.38,37.67,0.896,d7aa969498b8,auto
+P6,lullaby,Manikkam_katti_-_P_Unnikrishnan_Divya_Prabandham_-_lyrics_IqsMz20hETo,271.23,307.68,36.45,0.956,a25c3954121c,auto (gap 0.15s)
+P6,non_lullaby,Radha_Sametha_Krishna_Song_Unnikrishnan_Devotional_Radha_Krishna_Padalgal_zziZm5,218.39,258.85,40.46,0.938,ab36aaac8179,auto
+P7,lullaby,Omanathinkalkidavo_zHxc-kDX2PE,517.14,560.14,43.0,0.951,791f51ae175b,auto
+P7,non_lullaby,Paadunnu_Njaaninnu_Kadampuzha_BGw21MVQWXM,288.4,318.7,30.3,0.945,de55d5fe80f1,auto (gap 0.15s)
+P8,lullaby,Tharattu_paattu_Malayalam_Tharattu_Mangosteen_CLub_-_Mangosteen_Club_128k,8.61,48.77,40.16,0.895,d2150bd2dd45,auto
+P8,non_lullaby,Popular_Ayyappa_Song_by_K_J_Yesudas_Ayyappa_Swamy_Songs_ayyappaswamyson_BOjJGALm,25.93,56.73,30.8,0.858,c2fa5750ef8b,auto
+P9,lullaby,Paln__Mein_Laln__Bombay_Jayashri_MoonChild_Lullaby_XtLz0oLUatw,48.59,87.14,38.55,0.847,e0cb42a54cdc,auto
+P9,non_lullaby,Bombay_Jayashri_-_Raga_Karnaranjani_Deena_Sharanyane_Pseudo_Video_tsxxT5SK0qs,67.21,101.01,33.8,0.922,57d2cf4da94a,auto
+P10,lullaby,Neej_Mazya_Nandlala_With_Lyrics_________________Lata_Mangeshkar_Kavi_Gaurav_Man_,211.7,247.21,35.51,0.949,fa000020c0ce,auto
+P10,non_lullaby,Aata_Visavyache_kshana_Lata_Mangeshkar_Kshana_Amrutache_Times_Music_Spiritual_H4,69.91,113.74,43.83,0.887,f9dbeac7c191,auto
+PRACTICE,practice,Moksamu_Galada_Bhuvilo-_Saramati-_Adi-_Thyagaraja-_ML_Vasanthaku_600-900s,196.0,237.17,41.17,0.883,2cc7674ac15b,auto

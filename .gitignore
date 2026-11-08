@@ -16,3 +16,7 @@ results/**/_sep_tmp/
 results/**/*.log.tmp
 .claude/
 logs/
+
+# listening study: copyrighted audio and personal data never go to git
+study/snippets/
+study/data/

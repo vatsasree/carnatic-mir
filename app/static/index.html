@@ -152,7 +152,7 @@ let pollTimer = null;
 async function refreshTracks() {
   const r = await api('/api/tracks');
   const cur = $('trackSel').value;
-  $('trackSel').innerHTML = '<option value="">— select track —</option>' + r.tracks.map(t => `<option value="${t.track_id}">${t.track_id}</option>`).join('');
+  $('trackSel').innerHTML = '<option value="">— select track —</option>' + r.tracks.map(t => `<option value="${t.track_id}"${t.missing && t.missing.length ? ` title="missing: ${t.missing.join(', ')}"` : ''}>${t.missing && t.missing.length ? '⚠ ' : ''}${t.track_id}</option>`).join('');
   $('trackSel').value = cur;
   $('jobs').innerHTML = r.jobs.map(j => `<span class="state-${j.state}">${j.file}: ${j.state}</span>`).join(' · ');
   const active = r.jobs.filter(j => j.state === 'running' || j.state === 'queued');

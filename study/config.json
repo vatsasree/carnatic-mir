@@ -1,0 +1,35 @@
+{
+  "title": "Music and feelings",
+  "contact": "REPLACE: researcher name and email",
+  "age_groups": [
+    {"id": "18-25", "min": 18, "max": 25},
+    {"id": "26-40", "min": 26, "max": 40},
+    {"id": "41-60", "min": 41, "max": 60},
+    {"id": "61+",   "min": 61, "max": 120}
+  ],
+  "sets": {
+    "A": {"lullaby": ["P1", "P2", "P3", "P4", "P5"], "non_lullaby": ["P6", "P7", "P8", "P9", "P10"]},
+    "B": {"lullaby": ["P6", "P7", "P8", "P9", "P10"], "non_lullaby": ["P1", "P2", "P3", "P4", "P5"]}
+  },
+  "headphone_check": {"trials": 6, "pass": 5, "attempts": 2},
+  "phase2_labels": ["calm or soothing"],
+  "text": {
+    "welcome": "Thank you for your interest. In this study you will listen to 10 short pieces of Indian music (about 40 seconds each) and tell us how they make you feel. It takes about 35 minutes. You need headphones and a quiet place.",
+    "consent": "REPLACE WITH THE ETHICS-APPROVED CONSENT TEXT. Participation is voluntary; you can stop at any time by closing the page. We store your answers without your name. Your answers are used for research only.",
+    "phase1_intro": "You will now hear 10 pieces of music, one at a time. Listen to each piece to the end. Then tell us how the music made YOU feel while listening, not what the music is meant to express. There are no right or wrong answers.",
+    "phase2_intro": "Now you will hear the same pieces again. While the music plays, press and HOLD the button (or the space bar) whenever the music makes you feel {label}. Release it when the feeling stops. You can press and release as often as you like, or not at all.",
+    "practice_note": "First, a practice piece so you can get used to the task. It is not part of the study.",
+    "thanks": "Thank you! Your answers have been saved."
+  },
+  "gems": [
+    ["wonder", "Wonder", "filled with wonder, dazzled, moved"],
+    ["transcendence", "Transcendence", "fascinated, overwhelmed, feelings of spirituality"],
+    ["tenderness", "Tenderness", "tender, affectionate, in love"],
+    ["nostalgia", "Nostalgia", "nostalgic, dreamy, sentimental"],
+    ["peacefulness", "Peacefulness", "calm, relaxed, serene"],
+    ["power", "Power", "strong, triumphant, energetic"],
+    ["joyful_activation", "Joyful activation", "joyful, amused, bouncy"],
+    ["tension", "Tension", "tense, agitated, nervous"],
+    ["sadness", "Sadness", "sad, sorrowful"]
+  ]
+}

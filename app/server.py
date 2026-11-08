@@ -66,10 +66,18 @@ def config():
 def tracks():
     out = []
     for d in sorted(OUTPUTS.iterdir()):
-        if (d / "features.json").exists():
+        if not (d / "features.json").exists() or not (d / "timeseries.csv").exists():
+            continue
+        try:                            # a partly copied folder must not hide every other track
             meta = json.loads((d / "meta.json").read_text())
-            out.append({"track_id": d.name, "tonic_hz": meta.get("tonic_hz"),
-                        "separation": meta.get("separation"), "pitch_method": meta.get("pitch_method")})
+        except (OSError, ValueError):
+            meta = {}
+        missing = [f for f in ("meta.json", "frames.csv") if not (d / f).exists()]
+        if not any((d / f"vocals{e}").exists() for e in (".wav", ".m4a")):
+            missing.append("vocals")
+        out.append({"track_id": d.name, "tonic_hz": meta.get("tonic_hz"),
+                    "separation": meta.get("separation"), "pitch_method": meta.get("pitch_method"),
+                    "missing": missing})
     return {"tracks": out, "jobs": list(jobs.values())}
 
 
