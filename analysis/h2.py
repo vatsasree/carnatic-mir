@@ -163,9 +163,17 @@ def run(phase2: pd.DataFrame, presses: pd.DataFrame, snippets: pd.DataFrame) -> 
         evrows.append(ev[tok].assign(token=tok, pair=r["pair"], condition=r["condition"]))
     locked, courses = event_locked(cur, ev)
     fits, coef = lagged_regression(cur, feats)
+    extra = {}
+    if "attempts" in phase2 and (phase2["attempts"].fillna(1) > 1).any():
+        # listeners could listen again and re-mark: repeat the event-locked test on first listenings only
+        first = phase2[phase2["attempts"].fillna(1) == 1]
+        cur1 = curves(first, presses.merge(first[["pid", "token"]], on=["pid", "token"]), snippets)
+        extra["event_locked_first_listening"] = event_locked(cur1, {t: ev[t] for t in cur1})[0]
+        extra["relistening"] = pd.DataFrame([dict(trials=len(phase2), relistened=int((phase2["attempts"] > 1).sum()),
+                                                  mean_attempts=phase2["attempts"].mean())])
     curves_long = pd.concat([c.assign(token=t, pair=sn.loc[t, "pair"], condition=sn.loc[t, "condition"])
                              for t, c in cur.items()])
-    return {"event_locked": locked, "event_courses": courses, "lag_scan": fits, "lagged_regression": coef,
+    return {**extra, "event_locked": locked, "event_courses": courses, "lag_scan": fits, "lagged_regression": coef,
             "press_curves": curves_long, "snippet_events": pd.concat(evrows) if evrows else pd.DataFrame(),
             "press_summary": phase2.assign(share=phase2["held_s"] / phase2["duration_s"])
                              .groupby(["pair", "condition"])

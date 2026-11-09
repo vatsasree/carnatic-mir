@@ -124,7 +124,7 @@ def run(R: pd.DataFrame, gems: list) -> dict:
     add("primary", R)
     add("+ familiarity + lyric understanding", R, "familiar_n + lyrics_n")
     add("excluding songs the listener knows well", R[R["familiar"] != "know_well"])
-    add("listeners who passed the headphone check", R[R["headphones_ok"] == True])
+    add("listeners using headphones (self-report)", R[R["headphones_ok"] == True])
     add("same-singer pairs only (P3, P5, P6, P9, P10)", R[R["same_singer"]])
     cov = " + ".join(c for c in ("years_indian_training", "mood_valence") if c in R and R[c].notna().any())
     if cov:

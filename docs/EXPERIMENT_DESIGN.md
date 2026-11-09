@@ -503,3 +503,18 @@ No dates are fixed yet; the order below is the critical path. Steps 1-4 can run 
 12. **Write up.**
 
 **Done already:** feature extraction for all 20 songs; the pairs mapping; suggested snippet windows and loudness-normalised audio; the experiment app with assignment, storage, export and private links, tested end to end.
+
+
+## Changes after the first pilot (2026-11-09)
+
+These supersede the earlier sections where they disagree.
+
+| Change | Before | Now | Why |
+|---|---|---|---|
+| Rating form | 5 GEMS items | Full GEMS-9 (Wonder, Transcendence, Power, Tenderness, Nostalgia, Peacefulness, Joyful activation, Tension, Sadness; original GEMS-9 descriptors) | Complete, comparable scale; primary outcome unchanged: soothing = mean(Peacefulness, Tenderness) |
+| Age | 18 or older | All ages (new age group "under-18", 5-17) | More diverse age groups; under-18s need parent or guardian consent in the ethics-approved consent text |
+| Headphone check | Woods et al. tone test (informative only) | Removed; headphones recommended, self-reported on the profile page | Speakers were already allowed, so the test had no consequence; sensitivity analysis now uses self-report |
+| Practice pieces | One per phase (Mokshamu Galada) | Removed (that recording is used only for the 12 s volume sample) | Saves about 2 minutes; Phase 2 can now be redone, so a mistake on the first piece is recoverable |
+| Phase 2 | One listening per piece | "Start over" during playback and "Listen again and re-mark" afterwards; the last complete listening counts, earlier ones are stored | Lets listeners fix missed or accidental marks |
+
+Analysis consequence for H2: listeners who re-mark have heard the piece more often, so their timing may anticipate the music. Report the share of trials with more than one listening, and repeat the event-locked analysis on first-listening trials only (`attempts == 1`) as a sensitivity check.

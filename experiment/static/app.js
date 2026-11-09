@@ -116,7 +116,7 @@ async function welcome() {
   const t = CFG.text;
   screen(`<h1>${esc(CFG.title)}</h1><div class="card"><p>${esc(t.welcome)}</p></div>
     <h2>Consent</h2><div class="card"><p>${esc(t.consent)}</p><p class="small muted">Contact: ${esc(CFG.contact)}</p>
-    <label class="check"><input type="checkbox" id="c1"> I am 18 or older and agree to take part.</label>
+    <label class="check"><input type="checkbox" id="c1"> I agree to take part (if I am under 18, my parent or guardian agrees too).</label>
     <label class="check"><input type="checkbox" id="c2"> I am in a quiet place (headphones or earphones recommended).</label></div>
     ${next('Start')}`);
   const b = $('#next'); b.disabled = true;
@@ -129,7 +129,7 @@ async function welcome() {
 const LANGS = ['Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Hindi', 'Marathi', 'Gujarati', 'Bengali', 'Sanskrit', 'English'];
 async function profile() {
   screen(`<h1>About you</h1><div class="card" id="f">
-    <label class="field" for="age">Age (years)</label><input id="age" type="number" min="18" max="120" inputmode="numeric">
+    <label class="field" for="age">Age (years)</label><input id="age" type="number" min="5" max="120" inputmode="numeric">
     ${options('gender', 'Gender', [['woman', 'Woman'], ['man', 'Man'], ['other', 'Another gender'], ['na', 'Prefer not to say']])}
     <label class="field" for="lang1">First language (mother tongue)</label>
     <select id="lang1"><option value="">— choose —</option>${LANGS.map(l => `<option>${l}</option>`).join('')}<option value="other">Other</option></select>
@@ -157,7 +157,7 @@ async function profile() {
     const age = parseInt($('#age').value, 10);
     const lang1 = $('#lang1').value === 'other' ? $('#lang1o').value.trim() : $('#lang1').value;
     let err = '';
-    if (!(age >= 18 && age <= 120)) err = 'Please enter your age (18 or older).';
+    if (!(age >= 5 && age <= 120)) err = 'Please enter your age in years.';
     else if (!lang1) err = 'Please choose your first language.';
     else if (missing.length) { err = 'Please answer the questions marked in red.'; missing[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     if (err) { $('#msg').textContent = err; continue; }
@@ -182,11 +182,11 @@ async function calibrate() {
     <div class="actions"><button id="ps" class="secondary">Play sample</button><span class="muted small" id="st"></span></div></div>
     ${next('The volume is comfortable')}`);
   const b = $('#next'); b.disabled = true;
-  const buf = await buffer(url(CFG.practice.token));
+  const buf = await buffer(url(CFG.volume_sample));
   let player = null;
   $('#ps').onclick = () => {
     if (player) { player.stop(); player = null; $('#ps').textContent = 'Play sample'; return; }
-    // 12 s from the middle of the practice piece
+    // 12 s from a recording that is not part of the study
     const c = audioCtx(), src = c.createBufferSource(), seg = c.createBuffer(buf.numberOfChannels, Math.min(buf.length, 12 * buf.sampleRate), buf.sampleRate);
     const off = Math.floor(buf.length / 3);
     for (let ch = 0; ch < buf.numberOfChannels; ch++) seg.copyToChannel(buf.getChannelData(ch).subarray(off, off + seg.length), ch);
@@ -197,57 +197,6 @@ async function calibrate() {
   await clicked(b);
   if (player) player.stop();
   save('calibration', 'volume', { done: true });
-}
-
-// Headphone check (Woods et al., 2017): three 200 Hz tones, one is 6 dB softer, one is played in antiphase
-// between the ears. Over loudspeakers the antiphase tone cancels and sounds softest; over headphones it does not.
-function tone(kind) {
-  const c = audioCtx(), sr = c.sampleRate, n = sr, b = c.createBuffer(2, n, sr);
-  const amp = kind === 'quiet' ? 0.5 * 0.35 : 0.35, L = b.getChannelData(0), R = b.getChannelData(1), ramp = 0.1 * sr;
-  for (let i = 0; i < n; i++) {
-    const env = Math.min(1, i / ramp, (n - 1 - i) / ramp);
-    const v = amp * env * Math.sin(2 * Math.PI * 200 * i / sr);
-    L[i] = v; R[i] = kind === 'anti' ? -v : v;
-  }
-  return b;
-}
-async function headphoneCheck() {
-  const H = CFG.headphone_check;
-  for (let attempt = (S.hp_attempts || 0) + 1; attempt <= H.attempts; attempt++) {
-    S.hp_attempts = attempt; persist();          // a reload does not give extra attempts
-    let correct = 0; const trials = [];
-    for (let t = 0; t < H.trials; t++) {
-      const kinds = ['std', 'quiet', 'anti'].sort(() => Math.random() - .5);
-      screen(`<h1>Sound check ${attempt > 1 ? '(second try)' : ''}</h1><div class="card">
-        <p>You will hear three tones. Which one is the <b>softest</b> (quietest)?</p><p class="muted small">Tone ${t + 1} of ${H.trials}. Each set plays once.</p>
-        <div class="actions"><button id="pl">Play the tones</button></div>
-        <div class="choices" style="margin-top:16px">${[1, 2, 3].map(i => `<button class="secondary ans" data-i="${i - 1}" disabled>${i}</button>`).join('')}</div></div>`);
-      await clicked($('#pl')); $('#pl').disabled = true;
-      const c = audioCtx(); let at = c.currentTime + 0.1;
-      for (const k of kinds) { const s = c.createBufferSource(); s.buffer = tone(k); s.connect(c.destination); s.start(at); at += 1.5; }
-      await sleep((at - c.currentTime) * 1000);
-      $$('.ans').forEach(b => b.disabled = false);
-      const pick = await new Promise(r => $$('.ans').forEach(b => b.onclick = () => r(+b.dataset.i)));
-      const ok = kinds[pick] === 'quiet'; correct += ok;
-      trials.push({ order: kinds, pick, ok });
-    }
-    const passed = correct >= H.pass;
-    save('headphone', 'attempt' + attempt, { correct, trials, passed });
-    if (passed) { save('headphone', 'result', { correct, passed: true, attempts: attempt }); return true; }
-    if (attempt < H.attempts) {
-      screen(`<h1>Let's try that once more</h1><div class="card"><p>If you are using headphones, please check they are on
-        properly (left and right on the correct ears).</p></div>${next('Try again')}`);
-      await clicked($('#next'));
-    } else {
-      save('headphone', 'result', { correct, passed: false, attempts: attempt });
-    }
-  }
-  await flush();
-  if (!H.required) return false;       // check is informative only: everyone continues, result is stored
-  screen(`<h1>Thank you</h1><div class="card"><p>Unfortunately the sound check suggests that the sound is not reaching
-    you through headphones, which this study needs. Thank you very much for your time; you can close this page now.</p></div>`);
-  S.ended = true; persist();
-  return new Promise(() => { });       // stop here
 }
 
 function intro(title, text, note) {
@@ -272,11 +221,10 @@ async function listen(tok, heading) {
   return { duration: buf.duration, hidden };
 }
 
-function ratingTrial(tok, idx, total, practice = false) {
+function ratingTrial(tok, idx, total) {
   return async () => {
-    const heading = practice ? 'Practice piece' : `Piece ${idx + 1} of ${total}`;
-    const L = await listen(tok, heading);
-    const attention = !practice && idx === S.assignment.attention_trial;
+    const L = await listen(tok, `Piece ${idx + 1} of ${total}`);
+    const attention = idx === S.assignment.attention_trial;
     const rows = CFG.gems.map(([k, name, hint]) => pills('gems_' + k, 5, 'not at all', 'very much', name, hint));
     if (attention) rows.splice(4, 0, pills('attention', 5, 'not at all', 'very much', 'Attention check', 'Please choose 2 for this row.'));
     $('#after').innerHTML = `<div class="card" id="f"><h2 style="margin-top:0">How did this music make you feel?</h2>
@@ -295,49 +243,71 @@ function ratingTrial(tok, idx, total, practice = false) {
       const { out, missing } = readForm($('#f'));
       if (missing.length) { $('#msg').textContent = 'Please answer the rows marked in red.'; missing[0].scrollIntoView({ behavior: 'smooth', block: 'center' }); continue; }
       save('rating', tok, { ...out, words: $('#words').value.trim(), rt_s: Math.round(performance.now() - t0) / 1000,
-                            attention_trial: attention, practice, tab_hidden_during_audio: L.hidden, position: practice ? -1 : idx });
+                            attention_trial: attention, tab_hidden_during_audio: L.hidden, position: idx });
       return;
     }
   };
 }
 
-function holdTrial(tok, label, idx, total, practice = false) {
+// One playback with the hold button; returns the holds (snippet seconds) or null if the listener pressed "Start over".
+async function holdPass(buf, label, attempt) {
+  const c = audioCtx();
+  screen(`<h1>${esc(holdPass.heading)}</h1><div class="card player">
+    <p>Hold the button (or the <b>space bar</b>) whenever the music makes you feel <b>${esc(label)}</b>.</p>
+    ${attempt > 1 ? `<p class="muted small">Listening ${attempt}: your earlier marks for this piece are replaced by the new ones.</p>` : ''}
+    <div class="progress"><div id="pg"></div></div>
+    <button id="hold" class="hold">Hold while you feel ${esc(label)}</button>
+    <div class="actions"><button id="restart" class="secondary">Start over</button><span id="st" class="muted small">Playing…</span></div></div>
+    <div id="after"></div>`);
+  const hold = $('#hold');
+  const holds = []; let down = null, p, playing = true, restarted = false;
+  const now = () => Math.max(0, Math.min(buf.duration, c.currentTime - p.t0));
+  const on = () => { if (!playing || down !== null) return; down = now(); hold.classList.add('on'); hold.textContent = 'Holding…'; };
+  const off = () => { if (down === null) return; holds.push([+down.toFixed(3), +now().toFixed(3)]); down = null; hold.classList.remove('on'); hold.textContent = 'Hold while you feel ' + label; };
+  hold.addEventListener('pointerdown', e => { e.preventDefault(); hold.setPointerCapture(e.pointerId); on(); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => hold.addEventListener(ev, off));
+  hold.addEventListener('contextmenu', e => e.preventDefault());
+  const kd = e => { if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) on(); } };
+  const ku = e => { if (e.code === 'Space') { e.preventDefault(); off(); } };
+  const blur = () => off();
+  addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', blur);
+  hiddenLog = [];
+  p = play(buf, f => { const pg = $('#pg'); if (pg) pg.style.width = (f * 100) + '%'; });
+  $('#restart').onclick = () => { restarted = true; p.stop(); };
+  await p.done;
+  off(); playing = false;
+  removeEventListener('keydown', kd); removeEventListener('keyup', ku); removeEventListener('blur', blur);
+  const hidden = hiddenLog.length; hiddenLog = null;
+  hold.disabled = true; hold.textContent = 'Finished'; $('#restart').disabled = true; $('#st').textContent = '';
+  return restarted ? { restarted: true, holds, hidden, at: now() } : { holds, hidden };
+}
+
+function holdTrial(tok, label, idx, total) {
   return async () => {
-    const heading = practice ? 'Practice piece' : `Piece ${idx + 1} of ${total}`;
-    screen(`<h1>${heading}</h1><div class="card player">
+    holdPass.heading = `Piece ${idx + 1} of ${total}`;
+    screen(`<h1>${holdPass.heading}</h1><div class="card player">
       <p>Hold the button (or the <b>space bar</b>) whenever the music makes you feel <b>${esc(label)}</b>.</p>
       <div class="progress"><div id="pg"></div></div>
       <button id="hold" class="hold" disabled>Press <b>Play</b> first</button>
-      <div class="actions"><button id="pl">Play</button><span id="st" class="muted small"></span></div></div>
-      <div id="after"></div>`);
+      <div class="actions"><button id="pl">Play</button><span id="st" class="muted small"></span></div></div>`);
     const bufP = buffer(url(tok));
     await clicked($('#pl')); $('#pl').disabled = true; $('#st').textContent = 'Loading…';
-    const buf = await bufP; $('#st').textContent = '';
-    const c = audioCtx(), hold = $('#hold');
-    const holds = []; let down = null, p, playing = true;
-    const now = () => Math.max(0, Math.min(buf.duration, c.currentTime - p.t0));
-    const on = () => { if (!playing || down !== null) return; down = now(); hold.classList.add('on'); hold.textContent = 'Holding…'; };
-    const off = () => { if (down === null) return; holds.push([+down.toFixed(3), +now().toFixed(3)]); down = null; hold.classList.remove('on'); hold.textContent = 'Hold while you feel ' + label; };
-    hold.disabled = false; hold.textContent = 'Hold while you feel ' + label;
-    hold.addEventListener('pointerdown', e => { e.preventDefault(); hold.setPointerCapture(e.pointerId); on(); });
-    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => hold.addEventListener(ev, off));
-    hold.addEventListener('contextmenu', e => e.preventDefault());
-    const kd = e => { if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) on(); } };
-    const ku = e => { if (e.code === 'Space') { e.preventDefault(); off(); } };
-    const blur = () => off();
-    addEventListener('keydown', kd); addEventListener('keyup', ku); addEventListener('blur', blur);
-    hiddenLog = [];
-    p = play(buf, f => $('#pg').style.width = (f * 100) + '%');
-    await p.done;
-    off(); playing = false;
-    removeEventListener('keydown', kd); removeEventListener('keyup', ku); removeEventListener('blur', blur);
-    hold.disabled = true; hold.textContent = 'Finished';
-    save('presses', `${tok}|${label}`, { holds, duration_s: buf.duration, practice, position: practice ? -1 : idx,
-      output_latency_s: c.outputLatency || c.baseLatency || null, tab_hidden_during_audio: hiddenLog.length,
-      input: matchMedia('(pointer: coarse)').matches ? 'touch' : 'mouse/keyboard' });
-    hiddenLog = null;
-    $('#after').innerHTML = `<p class="muted">${holds.length ? `You marked ${holds.length} moment${holds.length > 1 ? 's' : ''}.` : 'You did not mark any moment – that is fine.'}</p>${next()}`;
-    await clicked($('#next'));
+    const buf = await bufP;
+    const c = audioCtx(), earlier = [];          // every listening is kept; the last complete one counts
+    for (let attempt = 1; ; attempt++) {
+      const r = await holdPass(buf, label, attempt);
+      if (r.restarted) { earlier.push({ holds: r.holds, stopped_at_s: +r.at.toFixed(3), complete: false }); continue; }
+      save('presses', `${tok}|${label}`, { holds: r.holds, duration_s: buf.duration, position: idx, attempts: attempt,
+        earlier_attempts: earlier, output_latency_s: c.outputLatency || c.baseLatency || null,
+        tab_hidden_during_audio: r.hidden, input: matchMedia('(pointer: coarse)').matches ? 'touch' : 'mouse/keyboard' });
+      const n = r.holds.length;
+      $('#after').innerHTML = `<p class="muted">${n ? `You marked ${n} moment${n > 1 ? 's' : ''}.` : 'You did not mark any moment – that is fine.'}
+        If you would like to redo the marking, you can listen again.</p>
+        <div class="actions"><button id="again" class="secondary">Listen again and re-mark</button><button id="next">Next piece</button></div>`;
+      const choice = await Promise.race([clicked($('#again')).then(() => 'again'), clicked($('#next')).then(() => 'next')]);
+      if (choice === 'next') return;
+      earlier.push({ holds: r.holds, complete: true });
+    }
   };
 }
 
@@ -370,16 +340,12 @@ async function done() {
 
 // ---------- flow ----------
 function steps() {
-  const a = S.assignment, n1 = a.phase1.length, n2 = a.phase2.length, t = CFG.text, pr = CFG.practice.token;
-  const st = [calibrate, headphoneCheck,
-    intro('Part 1: How does the music make you feel?', t.phase1_intro, t.practice_note),
-    ratingTrial(pr, 0, n1, true),
-    intro('Now the real pieces', 'The practice is over. Now the 10 pieces of the study follow.'),
+  const a = S.assignment, n1 = a.phase1.length, n2 = a.phase2.length, t = CFG.text;
+  const st = [calibrate,
+    intro('Part 1: How does the music make you feel?', t.phase1_intro),
     ...a.phase1.map((tok, i) => ratingTrial(tok, i, n1))];
   for (const label of CFG.phase2_labels) {
-    st.push(intro('Part 2: Mark the moments', t.phase2_intro.replace('{label}', label), t.practice_note),
-      holdTrial(pr, label, 0, n2, true),
-      intro('Now the real pieces', 'The practice is over. Now the same 10 pieces follow, in a new order.'),
+    st.push(intro('Part 2: Mark the moments', t.phase2_intro.replace('{label}', label)),
       ...a.phase2.map((tok, i) => holdTrial(tok, label, i, n2)));
   }
   st.push(final);

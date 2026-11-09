@@ -4,7 +4,7 @@
     python -m analysis.report --export <dir> --out <dir>/results --quick
 
 Built in: lullaby effect on soothing = --effect scale points; listeners press 1-3 s after plain held notes;
-one participant fails the headphone check, one the attention check, one straight-lines, one is incomplete.
+one participant uses speakers, one fails the attention check, one straight-lines, one is incomplete.
 """
 import argparse
 import json
@@ -18,7 +18,8 @@ from carnatic_mir.config import ROOT
 from .common import snippet_frames
 from .h2 import events
 
-GEMS = ["peacefulness", "tenderness", "sadness", "joyful_activation", "tension"]
+GEMS = ["wonder", "transcendence", "power", "tenderness", "nostalgia", "peacefulness", "joyful_activation",
+        "tension", "sadness"]
 
 
 def main():
@@ -46,8 +47,8 @@ def main():
         P.append({"pid": pid, "created": now, "finished": now + rng.normal(1500, 200), "status": status,
                   "completion_code": "X", "link": "sim", "age_group": "-", "set_id": set_id,
                   "profile.age": age, "profile.years_indian_training": int(rng.integers(0, 10)),
-                  "profile.mood_valence": int(rng.integers(3, 8)), "headphone_correct": 6,
-                  "headphone_passed": i != 1, "attention_trial": 3})
+                  "profile.mood_valence": int(rng.integers(3, 8)),
+                  "profile.headphones": "speakers" if i == 1 else "in_ear", "attention_trial": 3})
         person = rng.normal(0, 0.5)
         toks = [rng.choice(main_sn[(main_sn["pair"] == p) & (main_sn["condition"] == c)]["token"].to_numpy())
                 for c, ps in cfg["sets"][set_id].items() for p in ps]
@@ -91,7 +92,8 @@ def main():
             T.append({"pid": pid, "token": tok, "pair": r["pair"], "condition": r["condition"],
                       "track_id": r["track_id"], "label": "calm or soothing", "n_holds": len(merged),
                       "held_s": sum(b - a_ for a_, b in merged), "duration_s": dur, "position": pos,
-                      "output_latency_s": 0.03, "input": "mouse/keyboard", "tab_hidden_during_audio": 0})
+                      "output_latency_s": 0.03, "input": "mouse/keyboard", "tab_hidden_during_audio": 0,
+                      "attempts": int(rng.choice([1, 2], p=[.8, .2]))})
             for k, (s, e) in enumerate(merged):
                 H.append({"pid": pid, "token": tok, "pair": r["pair"], "condition": r["condition"],
                           "label": "calm or soothing", "n": k, "start_s": round(s + 0.03, 3), "end_s": round(e + 0.03, 3),

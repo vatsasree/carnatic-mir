@@ -63,8 +63,8 @@ def load(export: Path = EXPORT) -> Study:
     def flag(mask, why):
         P.loc[mask & (P["reason"] == ""), "reason"] = why
     flag(P["status"] != "complete", "incomplete")
-    P["headphones_ok"] = _truthy(P.get("headphone_passed", pd.Series(False, index=P.index)))
-    # headphone check is informative only (config "required": false): sensitivity analysis, not an exclusion
+    # headphones are recommended, not required: self-report (profile.headphones) is used in a sensitivity analysis
+    P["headphones_ok"] = P.get("profile.headphones", pd.Series("", index=P.index)).isin(["over_ear", "in_ear"])
     main = R[R["condition"] != "practice"]
     if "attention" in main:
         att = main[_truthy(main["attention_trial"])].set_index("pid")["attention"]

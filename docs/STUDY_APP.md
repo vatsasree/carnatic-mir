@@ -1,13 +1,13 @@
 # Listening-study app
 
 A browser experiment for the lullaby study. Participants:
-1. consent
+1. consent (open to all ages; under-18s need a parent or guardian's consent)
 2. profile + current mood
-3. volume setting
-4. headphone check (Woods et al. 2017)
-5. **Phase 1**: rate 10 snippets (5 GEMS items, valence, arousal, liking, familiarity, lyrics understood, free words)
-6. **Phase 2**: hear the same 10 snippets again in a new order and hold a button / space bar while they feel *calm or soothing*
-7. final questions → completion code
+3. volume setting (headphones recommended, self-reported; no tone check)
+4. **Phase 1**: rate 10 snippets (GEMS-9, valence, arousal, liking, familiarity, lyrics understood, free words)
+5. **Phase 2**: hear the same 10 snippets again in a new order and hold a button / space bar while they feel *calm or soothing*;
+   "Start over" during playback or "Listen again and re-mark" afterwards replaces the marks (all listenings are stored)
+6. final questions → completion code
 
 Each song has two non-overlapping snippets (versions 1 and 2); each participant hears one version of one song from each of the 10 pairs, versions balanced per song on the server: **Set A** = lullabies of P1–P5 + non-lullabies of P6–P10,
 **Set B** = the reverse. Sets are balanced on the server (overall, or within each age group when
@@ -20,7 +20,7 @@ one random Phase 1 trial carries an attention-check row. Works on laptops and ph
 |---|---|---|
 | `study/pairs.csv` | yes | pair → lullaby / non-lullaby track |
 | `study/snippets.csv` | yes | snippet window (start/end s) and random file token per song |
-| `study/config.json` | yes | texts, age groups, sets, scales, headphone-check rules |
+| `study/config.json` | yes | texts, age groups, sets, GEMS items |
 | `study/snippets/*.mp3` | **no** | the audio participants hear (copyrighted) |
 | `study/data/` | **no** | `responses.sqlite`, `links.json`, `export/*.csv` (personal data) |
 | `experiment/` | yes | server (`server.py`), storage, snippet tool, export, web app (`static/`) |
@@ -57,13 +57,13 @@ Live counts: `curl -H "X-Admin-Token: $STUDY_ADMIN_TOKEN" <server>/admin/status`
 ```bash
 python -m experiment.export
 ```
-- `participants.csv`: profile, age group, set, headphone result, status (`complete` / `started` / `excluded`), completion code
+- `participants.csv`: profile (including self-reported headphones), age group, set, status (`complete` / `started` / `excluded`), completion code
 - `ratings.csv`: one row per participant × snippet, with pair, condition, track and snippet window
 - `presses.csv`: one row per hold, `start_s` / `end_s` in snippet seconds (add `snippet_start_s` to align with the
   track's `timeseries.csv`)
 - `events.csv`: volume step, final questions
 
-Practice trials have `condition = practice`; drop them in the analysis. `tab_hidden_during_audio > 0` flags trials where the
+There are no practice trials (removed); `phase2_trials.csv` has `attempts` (listenings) and `earlier_holds` (replaced marks); the analysis uses the final listening. `tab_hidden_during_audio > 0` flags trials where the
 participant switched away while the music played.
 
 ## Timing

@@ -119,6 +119,14 @@ def summary(out: Path, S, res1, res2, res3) -> str:
         for r in res2["event_locked"].itertuples():
             if getattr(r, "n_events", 0) and not pd.isna(getattr(r, "delta_share", np.nan)):
                 L.append(f"| {r.event} | {int(r.n_events)} | {r.delta_share:+.3f} | {r.z:+.1f} | {fmt_p(r.p_perm)} |")
+        if "relistening" in res2:
+            rl = res2["relistening"].iloc[0]
+            L.append(f"\nRe-marking: {int(rl['relistened'])} of {int(rl['trials'])} trials were listened to more than once "
+                     f"(mean {rl['mean_attempts']:.2f} listenings). First listenings only:\n")
+            L += ["| Event | n | Change | z | p |", "| --- | --- | --- | --- | --- |"]
+            for r in res2["event_locked_first_listening"].itertuples():
+                if getattr(r, "n_events", 0) and not pd.isna(getattr(r, "delta_share", np.nan)):
+                    L.append(f"| {r.event} | {int(r.n_events)} | {r.delta_share:+.3f} | {r.z:+.1f} | {fmt_p(r.p_perm)} |")
         if len(res2["lagged_regression"]):
             lag = res2["lagged_regression"]["lag_s"].iloc[0]
             L += [f"\nLagged regression (exploratory, best lag {lag:.2f} s):\n",

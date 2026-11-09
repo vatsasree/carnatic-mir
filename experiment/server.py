@@ -54,7 +54,7 @@ def _age_group(cfg: dict, age: int) -> str:
     for g in cfg["age_groups"]:
         if g["min"] <= age <= g["max"]:
             return g["id"]
-    raise HTTPException(400, "Sorry, this study is only open to adults (18 or older).")
+    raise HTTPException(400, "Please check the age you entered.")
 
 
 @app.get("/")
@@ -66,10 +66,9 @@ def index():
 def public_config(k: str):
     _link(k)
     cfg = config()
-    sn = snippets()["PRACTICE", "practice", "1"]
+    sn = snippets()["PRACTICE", "practice", "1"]          # not rated; only a 12 s excerpt for setting the volume
     return {"title": cfg["title"], "contact": cfg["contact"], "text": cfg["text"], "gems": cfg["gems"],
-            "headphone_check": cfg["headphone_check"], "phase2_labels": cfg["phase2_labels"],
-            "practice": {"token": sn["token"], "url": f"/audio/{sn['token']}.mp3"}}
+            "phase2_labels": cfg["phase2_labels"], "volume_sample": sn["token"]}
 
 
 class StartReq(BaseModel):
@@ -115,7 +114,7 @@ def state(pid: str):
 
 class SaveReq(BaseModel):
     pid: str
-    kind: str           # headphone | rating | presses | final | event
+    kind: str           # calibration | rating | presses | final | event
     item: str
     payload: dict | list
     client_ts: float | None = None
@@ -130,9 +129,6 @@ def save(req: SaveReq):
     if not p or req.kind not in KINDS:
         raise HTTPException(400)
     store.save(req.pid, req.kind, req.item, req.payload, req.client_ts)
-    if (req.kind == "headphone" and req.item == "result" and not req.payload.get("passed")
-            and config()["headphone_check"].get("required", True)):
-        store.set_status(req.pid, "excluded")       # frees the slot for balancing
     return {"ok": True}
 
 
