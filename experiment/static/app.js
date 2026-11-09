@@ -115,7 +115,7 @@ function readForm(root) {
 async function welcome() {
   const t = CFG.text;
   screen(`<h1>${esc(CFG.title)}</h1><div class="card"><p>${esc(t.welcome)}</p></div>
-    <h2>Consent</h2><div class="card"><p>${esc(t.consent)}</p><p class="small muted">Contact: ${esc(CFG.contact)}</p>
+    <h2>Consent</h2><div class="card"><p>${esc(t.consent)}</p>${CFG.contact ? `<p class="small muted">Contact: ${esc(CFG.contact)}</p>` : ''}
     <label class="check"><input type="checkbox" id="c1"> I agree to take part (if I am under 18, my parent or guardian agrees too).</label>
     <label class="check"><input type="checkbox" id="c2"> I am in a quiet place (headphones or earphones recommended).</label></div>
     ${next('Start')}`);
